@@ -11,10 +11,10 @@ from tqdm import tqdm
 
 from utilities import train_utils, model_utils
 from dataloader import Dataloader
-from utilities.train_utils import dump_samples, evaluate_scores, save_model
+from utilities.train_utils import dump_samples, evaluate_scores, save_model, joint_emb_loss, decode_sequence
 from models.encoder import Encoder
 from models.decoder import Decoder
-from models.paraphrase import Paraphrase
+from models.discriminator import Discriminator
 
 
 def init_weights(m):
@@ -47,7 +47,7 @@ def train():
     # instanstiate the model
     enc = Encoder(opt)
     dec = Decoder(opt)
-    para_model = Paraphrase(opt, enc, dec)
+    para_model = Discriminator(opt, enc, dec)
 
     os.makedirs(os.path.join(GEN_DIR, TIME), exist_ok=True)
 
@@ -67,22 +67,96 @@ def train():
     para_model.apply(init_weights)
     # optimizer
     optim = optim.Adadelta(para_model.parameters(), lr = opt['lr'])
+    # set to training mode
     para_model.train()
 
     para_model.to(DEVICE)
     cross_entropy_loss = nn.CrossEntropyLoss(ignore_index=data.PAD)
-
+    
+    # TRAINING
     for epoch in range(opt['epochs']):
         epoch_l1 = 0
         epoch_l2 = 0
         itr = 0
-        ph = []
-        pph = []
-        gpph = []
         para_model.train()
 
+        for phrase, phrase_len, paraphrase, paraphrase_len, _ in tqdm(
+                train_loader, ascii=True, desc="train" + str(epoch)):
 
+            phrase = phrase.to(DEVICE)
+            paraphrase = paraphrase.to(DEVICE)
 
+            enc_phrase = enc(phrase = phrase.t(), train = True)
+            dec_out = dec(phrase = phrase.t(), enc_phrase = enc_phrase, similar_phrase = paraphrase, teacher_forcing_ratio = 0.6, train = True)
+
+            out, enc_out, enc_sim_phrase = para_model(phrase = phrase.t(),sim_phrase=paraphrase.t(), out = dec_out , train=True)
+
+            loss_1, loss_2 = cross_entropy_loss(out.permute(1, 2, 0), paraphrase),joint_emb_loss(enc_out, enc_sim_phrase)
+
+            optim.zero_grad()
+            (loss_1 + loss_2).backward()
+
+            optim.step()
+
+            epoch_l1 += loss_1.item()
+            epoch_l2 += loss_2.item()
+
+            ph = []
+            pph = []
+            gpph = []
+
+            ph += decode_sequence(data.ix_to_word, phrase)
+            pph += decode_sequence(data.ix_to_word, paraphrase)
+            gpph += decode_sequence(data.ix_to_word, torch.argmax(out, dim=-1).t())
+
+            itr += 1
+            torch.cuda.empty_cache()
+
+        score = evaluate_scores(gpph, pph)
+
+        dump_samples(ph, pph, gpph, os.path.join(GEN_DIR, TIME,
+                                  str(epoch) + "_train.txt"))
+
+        # VALIDATION
+        epoch_l1 = 0
+        epoch_l2 = 0
+        itr = 0
+        para_model.eval()
+
+        for phrase, phrase_len, paraphrase, paraphrase_len, _ in tqdm(
+            val_loader, ascii=True, desc="validation" + str(epoch)):
+
+            phrase = phrase.to(DEVICE)
+            paraphrase = paraphrase.to(DEVICE)
+
+            enc_phrase = enc(phrase = phrase.t(), train = True)
+            dec_out = dec(phrase = phrase.t(), enc_phrase = enc_phrase, similar_phrase = paraphrase, teacher_forcing_ratio = 0.6, train = True)
+
+            out, enc_out, enc_sim_phrase = para_model(phrase = phrase.t(),sim_phrase=paraphrase.t(), out = dec_out , train=True)
+
+            loss_1, loss_2 = cross_entropy_loss(out.permute(1, 2, 0), paraphrase),joint_emb_loss(enc_out, enc_sim_phrase)
+
+            epoch_l1 += loss_1.item()
+            epoch_l2 += loss_2.item()
+
+            ph = []
+            pph = []
+            gpph = []
+
+            ph += decode_sequence(data.ix_to_word, phrase)
+            pph += decode_sequence(data.ix_to_word, paraphrase)
+            gpph += decode_sequence(data.ix_to_word, torch.argmax(out, dim=-1).t())
+
+            itr += 1
+            torch.cuda.empty_cache()
+
+        score = evaluate_scores(gpph, pph)
+        dump_samples(ph, pph, gpph,os.path.join(GEN_DIR, TIME, str(epoch) + "_val.txt"))
+
+        save_model(enc, optim, epoch, os.path.join(SAVE_DIR, TIME, 'enc' + str(epoch)))
+        save_model(dec, optim, epoch, os.path.join(SAVE_DIR, TIME, 'dec' + str(epoch)))
+
+    print('Training Done')
 
 if __name__ == "__main__":
 
@@ -91,6 +165,5 @@ if __name__ == "__main__":
     GEN_DIR = 'samples'
     HOME = './'
     TIME = time.strftime("%Y%m%d_%H%M%S")
-    DEVICE = torch.device(
-        'cuda') if torch.cuda.is_available() else torch.device('cpu')
+    DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     train()

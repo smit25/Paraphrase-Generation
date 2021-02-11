@@ -64,4 +64,4 @@ class Decoder(nn.module):
                 # word = word.t()
                 # enc_phrase = self.dec_emb(word)
             out = torch.cat(words, dim=0).to(device)
-            return similar_phrase, out
+            return out

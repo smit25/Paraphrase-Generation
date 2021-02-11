@@ -67,9 +67,9 @@ class Dataloader(data.Dataset):
         N = data.size()[0]
         new_data = torch.zeros(N, data.size()[1] + 2, dtype=torch.long) + self.PAD
         for i in range(N):
-            new_data[i, 1:data_len[i]+1] = data[i, :data_len[i]] #shifting the data downwards by a col
+            new_data[i, 1:data_len[i]+1] = data[i, :data_len[i]] #shifting the data rightwards by a col
             new_data[i, 0] = self.SOS #adding SOS token
-            new_data[i, data_len[i]+1] = self.EOS# adding EOS token
+            new_data[i, data_len[i]+1] = self.EOS # adding EOS token
             data_len[i] += 2 # increase len of matrix for compensating the SOS and EOS
         return new_data, data_len
 

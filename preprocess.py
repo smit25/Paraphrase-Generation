@@ -1,9 +1,9 @@
 """
-Preprocessing a raw json dataset into json/hdf5 files.
+Preprocessing a raw json dataset into json/h5py files.
 Experimental protocols mentioned in (Gupta et al., 2017) for the Quora dataset are followed
 This script will generate:
-- quora_data_prepro.h5 
-- quora_data_prepro.json
+- quora_data_prepro.h5 (which will contain the questions and its duplicated encoded into a numpy array)
+- quora_data_prepro.json (which will contain the index to word and the word to index dictionary)
 
 """
 import copy
@@ -22,6 +22,8 @@ from nltk.tokenize import word_tokenize
 import json
 import re
 import math
+import pickle
+from utilities.prepro_utils import prepro_parser
 
 maxlen = 26
 batch_size = 32
@@ -51,7 +53,7 @@ def prepro_question(imgs, params, c=0):
             sys.stdout.flush()   
     return imgs
 
-# Replacing less frequent words with 'UNK' and  build vocabulary for question and duplicates.
+# Replacing less frequent words with 'UNK' and build vocabulary for question and duplicates.
 def build_vocab_question(imgs5, params):
  
     count_thr = params['word_count_threshold']
@@ -62,7 +64,7 @@ def build_vocab_question(imgs5, params):
         for w in img['processed_tokens']:
             counts[w] = counts.get(w, 0) + 1
 
-    cw = sorted([(count,w) for w,count in counts.iteritems()], reverse=True)
+    cw = sorted([(count,w) for w,count in counts.iteritems()], reverse=True) # sort according to frequency in descending order
     print ('Top words and their counts:', '\n'.join(map(str,cw[:20])))
 
     # print obtained results
@@ -86,7 +88,7 @@ def build_vocab_question(imgs5, params):
         txt = img['processed_tokens']
         question = [w if counts.get(w,0) > count_thr else 'UNK' for w in txt]
         img['final_question'] = question
-        txt_c = img['processed_tokens_caption']
+        txt_c = img['processed_tokens_duplicate']
         duplicate = [w if counts.get(w,0) > count_thr else 'UNK' for w in txt_c]
         img['final_duplicate'] = duplicate
     
@@ -110,7 +112,7 @@ def encode_question(imgs, params, wtoi):
     max_length = params['max_length'] # of a question
     N = len(imgs)
 
-    # For storing encoded question qords
+    # For storing encoded question words
     label_arrays = np.zeros((N, max_length), dtype='uint32')
     label_length = np.zeros(N, dtype='uint32')
     question_id = np.zeros(N, dtype='uint32')
@@ -130,7 +132,7 @@ def encode_question(imgs, params, wtoi):
                 label_arrays[i,k] = wtoi[w]
         for k,w in enumerate(img['final_duplicate']):
             if k < max_length:
-                caption_arrays[i,k] = wtoi[w]            
+                duplicate_arrays[i,k] = wtoi[w]            
   
     return label_arrays, label_length, question_id, duplicate_arrays, duplicate_length
 
@@ -152,16 +154,21 @@ def main(params):
     imgs_test5 = prepro_question(imgs_test5, params,1)
 
     # create the vocab for question
-    imgs_train5,vocab = build_vocab_question(imgs_train5, params)
+    imgs_train5, vocab = build_vocab_question(imgs_train5, params)
+    with open('vocab.txt', 'wb') as vocab_save:
+        pickle.dump(vocab, vocab_save)
+        vocab_save.close()
+    
     itow = {i+1:w for i,w in enumerate(vocab)} # 1-indexed vocab translation table
     wtoi = {w:i+1 for i,w in enumerate(vocab)} # Bag of words model
 
-    ques_train5, ques_length_train5, question_id_train5 , cap_train5, cap_length_train5 = encode_question(imgs_train5, params, wtoi)
+    ques_train5, ques_length_train5, question_id_train5 , dup_train5, dup_length_train5 = encode_question(imgs_train5, params, wtoi)
     
     imgs_test5 = apply_vocab_question(imgs_test5, wtoi)
     
-    ques_test5, ques_length_test5, question_id_test5 , cap_test5, cap_length_test5 = encode_question(imgs_test5, params, wtoi)
+    ques_test5, ques_length_test5, question_id_test5 , dup_test5, dup_length_test5 = encode_question(imgs_test5, params, wtoi)
     
+    # H5 FILE PREPRO
     # Creating and writing on the h5 file
     N = len(imgs_train5)
     f = h5py.File(params['output_h5'], "w")
@@ -169,16 +176,16 @@ def main(params):
     ## for train data
     f.create_dataset("ques_train", dtype='uint32', data=ques_train5)
     f.create_dataset("ques_length_train", dtype='uint32', data=ques_length_train5)
-    f.create_dataset("ques_cap_id_train", dtype='uint32', data=question_id_train5)# ques_cap_id
-    f.create_dataset("ques1_train", dtype='uint32', data=cap_train5)
-    f.create_dataset("ques1_length_train", dtype='uint32', data=cap_length_train5)
+    f.create_dataset("ques_dup_id_train", dtype='uint32', data=question_id_train5)# ques_dup_id
+    f.create_dataset("ques1_train", dtype='uint32', data=dup_train5)
+    f.create_dataset("ques1_length_train", dtype='uint32', data=dup_length_train5)
 
     ## for test data
     f.create_dataset("ques_test", dtype='uint32', data=ques_test5)
     f.create_dataset("ques_length_test", dtype='uint32', data=ques_length_test5)
-    f.create_dataset("ques_cap_id_test", dtype='uint32', data=question_id_test5)
-    f.create_dataset("ques1_test", dtype='uint32', data=cap_test5)
-    f.create_dataset("ques1_length_test", dtype='uint32', data=cap_length_test5)
+    f.create_dataset("ques_dup_id_test", dtype='uint32', data=question_id_test5)
+    f.create_dataset("ques1_test", dtype='uint32', data=dup_test5)
+    f.create_dataset("ques1_length_test", dtype='uint32', data=dup_length_test5)
 
     f.close()
     print ('written on ', params['output_h5'])
@@ -190,22 +197,8 @@ def main(params):
     print ('wrote ', params['output_json'])
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-
-    # input and output jsons and h5 on terminal ( defining the params)
-    parser.add_argument('--input_train_json5', default='../data/quora_raw_train.json', help='input json file to process into hdf5')
-    parser.add_argument('--input_test_json5', default='../data/quora_raw_test.json', help='input json file to process into hdf5')
-    parser.add_argument('--output_json', default='../data/quora_data_prepro.json', help='output json file')
-    parser.add_argument('--output_h5', default='../data/quora_data_prepro.h5', help='output h5 file')
-    # parser.add_argument('--num_ans', default=1000, type=int, help='number of top answers for the final classifications.')
-
-    # Parameters
-    parser.add_argument('--max_length', default = maxlen, type=int, help='max length of a question, in number of words.')
-    parser.add_argument('--word_count_threshold', default=0, type=int, help='only words that occur more than this number of times will be put in vocab')
-    parser.add_argument('--token_method', default='nltk', help='tokenization method.')    
-    parser.add_argument('--batch_size', default=batch_size, type=int)
-    # parser.add_argument('--num_test', default=0, type=int, help='number of test images (to withold until very very end)')
-
+    
+    parser = prepro_parser(maxlen, batch_size)
     args = parser.parse_args()
     params = vars(args) # convert parser arguments to ordinary dict
     print ('parsed input parameters:', json.dumps(params, indent = 2))

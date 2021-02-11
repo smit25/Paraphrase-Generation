@@ -1,7 +1,6 @@
-  
 import torch
 import utilities.model_utils as utils
-#import utilities.net_utils as net_utils
+from score_eval.eval import COCOEvalCap
 import torch.nn as nn
 import os
 
@@ -77,9 +76,7 @@ def evaluate_scores(s1, s2):
     calculates scores and return the dict with score_name and value
     '''
     coco, cocoRes = getObjsForScores(s1, s2)
-
     evalObj = COCOEvalCap(coco, cocoRes)
-
     evalObj.evaluate()
 
     return evalObj.eval
