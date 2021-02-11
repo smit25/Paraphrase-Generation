@@ -65,7 +65,7 @@ def subs_antonyms(sentence):
       if antonym != None:
         new_word = antonym
         flag = True
-        i+=2
+        i+=1
     output.append(new_word)
     i+=1
 
