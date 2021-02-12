@@ -7,10 +7,10 @@ def prepro_parser(maxlen, batch_size):
     parser = argparse.ArgumentParser()
 
     # input and output jsons and h5 on terminal (defining the params)
-    parser.add_argument('--input_train_json5', default='../data/quora_raw_train.json', help='input json file to process into hdf5')
-    parser.add_argument('--input_test_json5', default='../data/quora_raw_test.json', help='input json file to process into hdf5')
-    parser.add_argument('--output_json', default='../data/quora_data_prepro.json', help='output json file')
-    parser.add_argument('--output_h5', default='../data/quora_data_prepro.h5', help='output h5 file')
+    parser.add_argument('--input_train_json5', default='./data/quora_raw_train.json', help='input json file to process into hdf5')
+    parser.add_argument('--input_test_json5', default='./data/quora_raw_test.json', help='input json file to process into hdf5')
+    parser.add_argument('--output_json', default='./data/quora_data_prepro.json', help='output json file')
+    parser.add_argument('--output_h5', default='./data/quora_data_prepro.h5', help='output h5 file')
     # parser.add_argument('--num_ans', default=1000, type=int, help='number of top answers for the final classifications.')
 
     # Parameters

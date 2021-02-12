@@ -14,7 +14,7 @@ import os
 
 train_len = 50000
 test_len = 30000
-val_len = 20000
+val_len = 20000 # extra
 
 def main():
 	out = []

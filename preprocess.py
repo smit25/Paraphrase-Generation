@@ -13,7 +13,6 @@ import os.path
 import argparse
 import glob
 import numpy as np
-from scipy.misc import imread, imresize
 import scipy.io
 import pdb
 import string
@@ -24,56 +23,60 @@ import re
 import math
 import pickle
 from utilities.prepro_utils import prepro_parser
+#from scipy.misc import imread, imresize
 
 maxlen = 26
 batch_size = 32
-# Tokenize the question
+# function for Tokenizing the questions
 def tokenize(sentence, params):
     if params['token_method'] == 'nltk':
         return(word_tokenize(sentence))
     else:
         return [i for i in re.split(r"([-.\"',:? !\$#@~()*&\^%;\[\]/\\\+<>\n=])", sentence) if i!='' and i!=' ' and i!='\n']
 
-# Preprocess all the questions and duplicates
+# Preprocess(tokenize) all the questions and duplicates
 def prepro_question(imgs, params, c=0):
     for i,img in enumerate(imgs):
         # c represents the original or duplicate question in every row
         if c==0:
             s = img['question']
             txt = tokenize(s, params)
+            txt = txt[:len(txt)-1]
             img['processed_tokens'] = txt
         elif c==1:
             s = img['question'+str(c)]
             txt = tokenize(s, params)
+            txt = txt[:len(txt)-1]
             img['processed_tokens_duplicate'] = txt
 
-        if i < 10: print (txt)
+        if i < 10: print ('Tokens: ', txt)
         if i % 1000 == 0:
             sys.stdout.write("processing %d/%d (%.2f%% done)   \r" %  (i, len(imgs), i*100.0/len(imgs)) )
             sys.stdout.flush()   
     return imgs
 
-# Replacing less frequent words with 'UNK' and build vocabulary for question and duplicates.
-def build_vocab_question(imgs5, params):
+# Replacing less frequent words with 'UNK'
+# Build vocabulary for question and duplicates.
+def build_vocab_question(imgs, params):
  
     count_thr = params['word_count_threshold']
     counts = {} # word vs its frequency
     
     #count words for every original question in every row
-    for img in imgs5:
+    for img in imgs:
         for w in img['processed_tokens']:
             counts[w] = counts.get(w, 0) + 1
 
-    cw = sorted([(count,w) for w,count in counts.iteritems()], reverse=True) # sort according to frequency in descending order
+    cw = sorted([(count,w) for w,count in counts.items()], reverse=True) # sort according to frequency in descending order
     print ('Top words and their counts:', '\n'.join(map(str,cw[:20])))
 
     # print obtained results
-    total_words = sum(counts.itervalues())
+    total_words = sum(counts.values())
     print ('total words:', total_words)
 
     # segregte words on the basis of their frequency relative to the threshold
-    low_words = [w for w,n in counts.iteritems() if n <= count_thr]
-    vocab = [w for w,n in counts.iteritems() if n > count_thr]   
+    low_words = [w for w,n in counts.items() if n <= count_thr]
+    vocab = [w for w,n in counts.items() if n > count_thr]   
     low_count = sum(counts[w] for w in low_words)
 
     print ('number of bad words: %d/%d = %.2f%%' % (len(low_words), len(counts), len(low_words)*100.0/len(counts)))
@@ -84,18 +87,18 @@ def build_vocab_question(imgs5, params):
     print ('inserting the special UNK token')
     vocab.append('UNK')
   
-    for img in imgs5:
+    for img in imgs:
         txt = img['processed_tokens']
         question = [w if counts.get(w,0) > count_thr else 'UNK' for w in txt]
         img['final_question'] = question
-        txt_c = img['processed_tokens_duplicate']
-        duplicate = [w if counts.get(w,0) > count_thr else 'UNK' for w in txt_c]
+        txt_d = img['processed_tokens_duplicate']
+        duplicate = [w if counts.get(w,0) > count_thr else 'UNK' for w in txt_d]
         img['final_duplicate'] = duplicate
     
-    return imgs5, vocab
+    return imgs, vocab
 
 # Applying vocab on validation and test sets for question and duplicate.
-def apply_vocab_question(imgs, wtoi):  
+def use_vocab_question(imgs, wtoi):  
     for img in imgs:
         txt = img['processed_tokens']
         question = [w if wtoi.get(w,len(wtoi)+1) != (len(wtoi)+1) else 'UNK' for w in txt]
@@ -106,35 +109,34 @@ def apply_vocab_question(imgs, wtoi):
 
     return imgs
 
-# Embedding the questions into one hot vector using Bag of Words Model (word2vec)
+# Embedding the questions into one-hot vector using Bag of Words Model (word2vec)
 def encode_question(imgs, params, wtoi):
-
     max_length = params['max_length'] # of a question
     N = len(imgs)
 
     # For storing encoded question words
-    label_arrays = np.zeros((N, max_length), dtype='uint32')
-    label_length = np.zeros(N, dtype='uint32')
+    question_arrays = np.zeros((N, max_length), dtype='uint32')
+    question_length = np.zeros(N, dtype='uint32')
     question_id = np.zeros(N, dtype='uint32')
     question_counter = 0
     
-    # Storing encoded duplicate words
+    # For storing encoded duplicate words
     duplicate_arrays = np.zeros((N, max_length), dtype='uint32') 
     duplicate_length = np.zeros(N, dtype='uint32')
        
     for i,img in enumerate(imgs):
         question_id[question_counter] = img['id'] #unique_id
-        label_length[question_counter] = min(max_length, len(img['final_question'])) # record the length of this question sequence
+        question_length[question_counter] = min(max_length, len(img['final_question'])) # record the length of this question sequence
         duplicate_length[question_counter] = min(max_length, len(img['final_duplicate'])) # record the length of this duplicate sequence        
         question_counter += 1
         for k,w in enumerate(img['final_question']):
             if k < max_length:
-                label_arrays[i,k] = wtoi[w]
+                question_arrays[i,k] = wtoi[w]
         for k,w in enumerate(img['final_duplicate']):
             if k < max_length:
                 duplicate_arrays[i,k] = wtoi[w]            
   
-    return label_arrays, label_length, question_id, duplicate_arrays, duplicate_length
+    return question_arrays, question_length, question_id, duplicate_arrays, duplicate_length
 
 # Calling the functions
 def main(params):
@@ -164,7 +166,7 @@ def main(params):
 
     ques_train5, ques_length_train5, question_id_train5 , dup_train5, dup_length_train5 = encode_question(imgs_train5, params, wtoi)
     
-    imgs_test5 = apply_vocab_question(imgs_test5, wtoi)
+    imgs_test5 = use_vocab_question(imgs_test5, wtoi)
     
     ques_test5, ques_length_test5, question_id_test5 , dup_test5, dup_length_test5 = encode_question(imgs_test5, params, wtoi)
     
@@ -188,13 +190,13 @@ def main(params):
     f.create_dataset("ques1_length_test", dtype='uint32', data=dup_length_test5)
 
     f.close()
-    print ('written on ', params['output_h5'])
+    print ('h5py file written on ', params['output_h5'])
     
     # create output json file
     out = {}
     out['index_to_word'] = itow # encode the (1-indexed) vocab
     json.dump(out, open(params['output_json'], 'w'))
-    print ('wrote ', params['output_json'])
+    print ('json file written on ', params['output_json'])
 
 if __name__ == "__main__":
     
