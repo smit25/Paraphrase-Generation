@@ -29,7 +29,7 @@ class Dataloader(data.Dataset):
         self.index_to_word[self.SOS] = '<SOS>'
         dict_len += 3
 
-        print('H5PY file')
+        print('H5PY file will open')
 
         qa_data = h5py.File(input_h5py_path, 'r')
 

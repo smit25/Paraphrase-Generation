@@ -13,7 +13,7 @@ new_tensor[0], new_tensor[input_len + 1] = len(itow)-1, len(itow) -2
 """
 
 gen_enc = torch.load('') # loading the encoder model
-gen_dec = torch.load('') # loading the encoder model
+gen_dec = torch.load('') # loading the decoder model
 gen_enc.eval()
 gen_dec.eval()
 

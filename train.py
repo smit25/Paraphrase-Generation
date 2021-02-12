@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as Data
-#from tensorboardX import SummaryWriter
+from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
 from utilities import train_utils, model_utils
@@ -16,9 +16,9 @@ from models.encoder import Encoder
 from models.decoder import Decoder
 from models.discriminator import Discriminator
 
-
-def init_weights(m):
-    for name, param in m.named_parameters():
+# function to initialize model weights
+def init_weights(model):
+    for name, param in model.named_parameters():
         nn.init.uniform_(param.data, -0.08, 0.08)
 
 def train():
@@ -28,6 +28,7 @@ def train():
 
     #load the data
     data = Dataloader(args.input_json, args.input_ques_h5)
+    logger = SummaryWriter(os.path.join(LOG_DIR, TIME + args.name))
 
     opt = {
         "vocab_sz": data.getVocabSize(),
@@ -51,12 +52,14 @@ def train():
 
     os.makedirs(os.path.join(GEN_DIR, TIME), exist_ok=True)
 
+    #Load training data
     train_loader = Data.DataLoader(
         Data.Subset(data, range(args.train_dataset_len)),
         batch_size=args.batch_size,
         shuffle=True
     )
 
+    # Load validation test data
     val_loader = Data.DataLoader(
         Data.Subset(data, range(args.val_dataset_len)),
         batch_size = args.batch_size,
@@ -112,7 +115,12 @@ def train():
             itr += 1
             torch.cuda.empty_cache()
 
+        logger.add_scalar("l2_train", epoch_l2 / itr, epoch)
+        logger.add_scalar("l1_train", epoch_l1 / itr, epoch)
+        # Evaluate bleu, meteor, cider and rouge scores for training set
         score = evaluate_scores(gpph, pph)
+        for key in score:
+            logger.add_scalar(key + "_train", score[key], epoch)
 
         dump_samples(ph, pph, gpph, os.path.join(GEN_DIR, TIME,
                                   str(epoch) + "_train.txt"))
@@ -149,10 +157,17 @@ def train():
 
             itr += 1
             torch.cuda.empty_cache()
+        
+        logger.add_scalar("l2_val", epoch_l2 / itr, epoch)
+        logger.add_scalar("l1_val", epoch_l1 / itr, epoch)
 
+        # Evaluate bleu, meteor, cider and rouge scores for val set
         score = evaluate_scores(gpph, pph)
+        for key in score:
+            logger.add_scalar(key + "_val", score[key], epoch)
         dump_samples(ph, pph, gpph,os.path.join(GEN_DIR, TIME, str(epoch) + "_val.txt"))
 
+        # Save model
         save_model(enc, optim, epoch, os.path.join(SAVE_DIR, TIME, 'enc' + str(epoch)))
         save_model(dec, optim, epoch, os.path.join(SAVE_DIR, TIME, 'dec' + str(epoch)))
 

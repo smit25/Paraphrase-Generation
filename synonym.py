@@ -5,7 +5,9 @@ nltk.download('wordnet')
 from nltk.tokenize import word_tokenize
 from nltk import pos_tag
 from nltk.corpus import wordnet as wn
-import random
+import spacy_universal_sentence_encoder
+
+nlp = spacy_universal_sentence_encoder.load_model('en_use_lg')
 
 def paraphraseable(tag):
  return tag.startswith('NN') or tag == 'VB' or tag.startswith('JJ')
@@ -21,6 +23,20 @@ def synonyms(word, tag):
   lemmas = [lemma.name() for lemma in sum(lemma_lists, [])]
   return set(lemmas)
 
+def get_best_synonym(word, sentence, syn_set, nlp_model, threshold = 0.96):
+  sent1 = nlp(sentence)
+  max_score = 0
+  result = word
+  for candidate in synonyms:
+    sent2 = sentence.replace(word,candidate) #replace word by candidate synonym
+    sent2 = nlp(sent2)
+    score = sent1.similarity(sent2) #compute word mover distance to select the best synonym, we can also use cosine similarity on BERT embedding
+    if score > max_score and score < threshold:
+      result = candidate
+      max_score = score
+    
+  return result
+
 def subs_synonym(sentence):
   words = word_tokenize(sentence)
   words = pos_tag(words)
@@ -30,7 +46,7 @@ def subs_synonym(sentence):
     if paraphraseable(tag):
       syn_set = synonyms(word, tag)
       if syn_set and len(syn_set)>1:
-        new_word = random.choice(syn_set)
+        new_word = get_best_synonym(word, sentence, syn_set, nlp)
     output.append(new_word)
   return ' '.join(output)
 
