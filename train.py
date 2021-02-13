@@ -1,7 +1,7 @@
 import os
 import subprocess
 import time
-
+import torchvision
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -14,7 +14,7 @@ from dataloader import Dataloader
 from utilities.train_utils import dump_samples, evaluate_scores, save_model, joint_emb_loss, decode_sequence
 from models.encoder import Encoder
 from models.decoder import Decoder
-from models.discriminator import Discriminator
+from models.seq2seq import Seq2Seq
 
 # function to initialize model weights
 def init_weights(model):
@@ -22,24 +22,25 @@ def init_weights(model):
         nn.init.uniform_(param.data, -0.08, 0.08)
 
 def train():
-    # Store parser arguements in a variable
+    # store parser arguements in a variable
     parser = model_utils.make_parser()
     args = parser.parse_args()
 
     #load the data
     data = Dataloader(args.input_json, args.input_ques_h5)
+    print('Dataloader successful!')
     logger = SummaryWriter(os.path.join(LOG_DIR, TIME + args.name))
 
     opt = {
         "vocab_sz": data.getVocabSize(),
-        "max_seq_len": data.getSeqLength(),
+        "max_seq_len": 28,
         "emb_hid_dim": args.emb_hid_dim,
         "emb_dim": args.emb_dim,
         "enc_dim": args.enc_dim,
         "enc_dropout": args.enc_dropout,
         "enc_rnn_dim": args.enc_rnn_dim,
-        "gen_rnn_dim": args.dec_rnn_dim,
-        "gen_dropout": args.dec_dropout,
+        "dec_rnn_dim": args.dec_rnn_dim,
+        "dec_dropout": args.dec_dropout,
         "lr": args.learning_rate,
         "epochs": args.n_epoch,
         "layers": 2
@@ -48,7 +49,8 @@ def train():
     # instanstiate the model
     enc = Encoder(opt)
     dec = Decoder(opt)
-    para_model = Discriminator(opt, enc, dec)
+    para_model = Seq2Seq(opt, enc, dec)
+    print('Models successfully loaded')
 
     os.makedirs(os.path.join(GEN_DIR, TIME), exist_ok=True)
 
@@ -58,6 +60,7 @@ def train():
         batch_size=args.batch_size,
         shuffle=True
     )
+    #print('----', len(train_loader))
 
     # Load validation test data
     val_loader = Data.DataLoader(
@@ -69,7 +72,7 @@ def train():
     #initialize the weights
     para_model.apply(init_weights)
     # optimizer
-    optim = optim.Adadelta(para_model.parameters(), lr = opt['lr'])
+    optimizer = optim.Adam(para_model.parameters(), lr = opt['lr'])
     # set to training mode
     para_model.train()
 
@@ -77,6 +80,7 @@ def train():
     cross_entropy_loss = nn.CrossEntropyLoss(ignore_index=data.PAD)
     
     # TRAINING
+    print('----------- BEGIN TRAINING -------------')
     for epoch in range(opt['epochs']):
         epoch_l1 = 0
         epoch_l2 = 0
@@ -89,17 +93,19 @@ def train():
             phrase = phrase.to(DEVICE)
             paraphrase = paraphrase.to(DEVICE)
 
-            enc_phrase = enc(phrase = phrase.t(), train = True)
-            dec_out = dec(phrase = phrase.t(), enc_phrase = enc_phrase, similar_phrase = paraphrase, teacher_forcing_ratio = 0.6, train = True)
+            out, enc_out, enc_sim_phrase = para_model(phrase = phrase,sim_phrase=paraphrase, training_mode= True)
+            # print('shape of output tensor', out.shape)
+            # print('shape of permuted out', out.permute(1,2,0).shape)
+            # print('shape of paraphrase', paraphrase.shape)
+            # print('enc_out shape', enc_out.shape)
+            # print('enc_sim_phrase', enc_sim_phrase.shape)
 
-            out, enc_out, enc_sim_phrase = para_model(phrase = phrase.t(),sim_phrase=paraphrase.t(), out = dec_out , train=True)
+            loss_1, loss_2 = cross_entropy_loss(out.permute(1, 2, 0), paraphrase), joint_emb_loss(enc_out, enc_sim_phrase)
 
-            loss_1, loss_2 = cross_entropy_loss(out.permute(1, 2, 0), paraphrase),joint_emb_loss(enc_out, enc_sim_phrase)
-
-            optim.zero_grad()
+            optimizer.zero_grad()
             (loss_1 + loss_2).backward()
 
-            optim.step()
+            optimizer.step()
 
             epoch_l1 += loss_1.item()
             epoch_l2 += loss_2.item()
@@ -108,9 +114,9 @@ def train():
             pph = []
             gpph = []
 
-            ph += decode_sequence(data.ix_to_word, phrase)
-            pph += decode_sequence(data.ix_to_word, paraphrase)
-            gpph += decode_sequence(data.ix_to_word, torch.argmax(out, dim=-1).t())
+            ph += decode_sequence(data.index_to_word, phrase)
+            pph += decode_sequence(data.index_to_word, paraphrase)
+            gpph += decode_sequence(data.index_to_word, torch.argmax(out, dim=-1).t())
 
             itr += 1
             torch.cuda.empty_cache()
@@ -131,16 +137,17 @@ def train():
         itr = 0
         para_model.eval()
 
+        print('----------- BEGIN VALIDATION -------------')
         for phrase, phrase_len, paraphrase, paraphrase_len, _ in tqdm(
             val_loader, ascii=True, desc="validation" + str(epoch)):
 
             phrase = phrase.to(DEVICE)
             paraphrase = paraphrase.to(DEVICE)
 
-            enc_phrase = enc(phrase = phrase.t(), train = True)
-            dec_out = dec(phrase = phrase.t(), enc_phrase = enc_phrase, similar_phrase = paraphrase, teacher_forcing_ratio = 0.6, train = True)
+            # enc_phrase = enc(phrase = phrase.t(), train = True)
+            # dec_out = dec(phrase = phrase.t(), enc_phrase = enc_phrase, similar_phrase = paraphrase, teacher_forcing_ratio = 0.6, train = True)
 
-            out, enc_out, enc_sim_phrase = para_model(phrase = phrase.t(),sim_phrase=paraphrase.t(), out = dec_out , train=True)
+            out, enc_out, enc_sim_phrase = para_model(phrase = phrase,sim_phrase=paraphrase, training_mode=True)
 
             loss_1, loss_2 = cross_entropy_loss(out.permute(1, 2, 0), paraphrase),joint_emb_loss(enc_out, enc_sim_phrase)
 
@@ -151,9 +158,9 @@ def train():
             pph = []
             gpph = []
 
-            ph += decode_sequence(data.ix_to_word, phrase)
-            pph += decode_sequence(data.ix_to_word, paraphrase)
-            gpph += decode_sequence(data.ix_to_word, torch.argmax(out, dim=-1).t())
+            ph += decode_sequence(data.index_to_word, phrase)
+            pph += decode_sequence(data.index_to_word, paraphrase)
+            gpph += decode_sequence(data.index_to_word, torch.argmax(out, dim=-1).t())
 
             itr += 1
             torch.cuda.empty_cache()
@@ -168,8 +175,8 @@ def train():
         dump_samples(ph, pph, gpph,os.path.join(GEN_DIR, TIME, str(epoch) + "_val.txt"))
 
         # Save model
-        save_model(enc, optim, epoch, os.path.join(SAVE_DIR, TIME, 'enc' + str(epoch)))
-        save_model(dec, optim, epoch, os.path.join(SAVE_DIR, TIME, 'dec' + str(epoch)))
+        save_model(enc, optimizer, epoch, os.path.join(SAVE_DIR, TIME, 'enc' + str(epoch)))
+        save_model(dec, optimizer, epoch, os.path.join(SAVE_DIR, TIME, 'dec' + str(epoch)))
 
     print('Training Done')
 

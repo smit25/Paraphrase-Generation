@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 from random import random
 
-import utilities.model_utils as utils
-
 """
 SEED = 1234
 
@@ -16,15 +14,18 @@ torch.backends.cudnn.deterministic = True
 """
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-class Decoder(nn.module):
+def one_hot(phrase, c):
+    return torch.zeros(*phrase.size(), c, device=device).scatter_(-1, phrase.unsqueeze(-1), 1)
+
+class Decoder(nn.Module):
     def __init__(self, opt):
-        super(Decoder).__init__()
+        super(Decoder, self).__init__()
 
         self.max_seq_len = opt["max_seq_len"]
         self.vocab_sz = opt["vocab_sz"]
         self.layers = 2
 
-        self.dec_emb = nn.Embedding(opt["vocab_sz"], opt["emd_dim"])
+        self.dec_emb = nn.Embedding(opt["vocab_sz"], opt["emb_dim"])
 
         self.dec_rnn = nn.GRU(opt["emb_dim"], opt["dec_rnn_dim"])
 
@@ -43,25 +44,28 @@ class Decoder(nn.module):
         """
         if similar_phrase == None:
             similar_phrase = phrase
+        # print('phrase', phrase.shape) # (28, 100)
+        # print('similar_phrase', similar_phrase.shape) # (28, 100)
+        # print('encoded phrase', enc_phrase.shape) # (1, 100, 512)
         
-        hid = None
+        # WITH FORCED TEACHER TRAINING
         words = []
+        h = None
+        emb_sim_phrase_dec = self.dec_emb(similar_phrase)
+        #print('emb_sim_phrase', emb_sim_phrase_dec.shape) # (28, 100, 512)
+        dec_rnn_inp = torch.cat([enc_phrase, emb_sim_phrase_dec[:-1, :]], dim=0)
+        #print('dec_rnn_inp', dec_rnn_inp.shape)
+        out_rnn, _ = self.dec_rnn(dec_rnn_inp)
+        out = self.dec_lin(out_rnn)
 
-        if random.random() < teacher_forcing_ratio:
-            emb_sim_phrase_dec = self.dec_emb(similar_phrase)
-            out_rnn, _ = self.dec_rnn(
-                torch.cat([enc_phrase, emb_sim_phrase_dec[:-1, :]], dim=0))
-            out = self.dec_lin(out_rnn)
-
-        else:
-            words = []
-            h = None
-            for __ in range(self.max_seq_len):
-                word, h = self.dec_rnn(enc_phrase, hx=h)
-                word = self.dec_lin(word)
-                words.append(word)
-                # word = torch.multinomial(torch.exp(word[0]), 1)
-                # word = word.t()
-                # enc_phrase = self.dec_emb(word)
-            out = torch.cat(words, dim=0).to(device)
-            return out
+        # WITHOUT FORCED TEACHER TRAINING
+        # for __ in range(self.max_seq_len):
+        #     word, h = self.dec_rnn(enc_phrase, hx=h)
+        #     word = self.dec_lin(word)
+        #     words.append(word)
+        #     word = torch.multinomial(torch.exp(word[0]), 1)
+        #     word = word.t()
+        #     enc_phrase = self.dec_emb(word)
+        # out = torch.cat(words, dim=0).to(device)
+        
+        return out

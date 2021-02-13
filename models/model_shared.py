@@ -16,7 +16,7 @@ torch.backends.cudnn.deterministic = True
 """
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-class Paraphrase(nn.module):
+class Paraphrase(nn.Module):
 
     def __init__(self, opt):
         super(Paraphrase).__init__()

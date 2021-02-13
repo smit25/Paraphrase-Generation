@@ -26,7 +26,7 @@ from utilities.prepro_utils import prepro_parser
 #from scipy.misc import imread, imresize
 
 maxlen = 26
-batch_size = 32
+batch_size = 16
 # function for Tokenizing the questions
 def tokenize(sentence, params):
     if params['token_method'] == 'nltk':

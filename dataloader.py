@@ -1,4 +1,5 @@
 import h5py
+import copy
 import json
 import torch
 import torch.utils.data as data
@@ -14,8 +15,7 @@ class Dataloader(data.Dataset):
         self.index_to_word = {}
 
         # copying the dictionary    
-        for i, pair in enumerate(data_dict['index_to_word']):
-            self.index_to_word[int(i)] = data_dict['index_to_word'][i]
+        self.index_to_word = data_dict['index_to_word'].copy()
         
         if 0 not in self.index_to_word:
             self.index_to_word[0] = 'UNK'
@@ -33,9 +33,10 @@ class Dataloader(data.Dataset):
 
         qa_data = h5py.File(input_h5py_path, 'r')
 
-        ques_id_train = torch.from_numpy(qa_data['ques_cap_id_train'][...].astype(int))
+        ques_id_train = torch.from_numpy(qa_data['ques_dup_id_train'][...].astype(int))
 
         ques_train, ques_len_train = self.process_data(torch.from_numpy(qa_data['ques_train'][...].astype(int)), torch.from_numpy(qa_data['ques_length_train'][...].astype(int)))
+        print('ques_train_shape: ', ques_train.shape)
 
         label_train, label_len_train = self.process_data(torch.from_numpy(qa_data['ques1_train'][...].astype(int)), torch.from_numpy(qa_data['ques1_length_train'][...].astype(int)))
 
@@ -49,7 +50,7 @@ class Dataloader(data.Dataset):
 
         label_test, label_len_test = self.process_data(torch.from_numpy(qa_data['ques1_test'][...].astype(int)), torch.from_numpy(qa_data['ques1_length_test'][...].astype(int)))
 
-        ques_id_test = torch.from_numpy(qa_data['ques_cap_id_test'][...].astype(int))
+        ques_id_test = torch.from_numpy(qa_data['ques_dup_id_test'][...].astype(int))
 
         self.test_id = 0
 
@@ -80,7 +81,7 @@ class Dataloader(data.Dataset):
         return (self.ques[idx], self.len[idx], self.label[idx], self.label_len[idx], self.id[idx])
 
     def getVocabSize(self):
-        return self.vocab_size
+        return len(self.index_to_word)
 
     def getDataNum(self, split):
         if split == 1:
@@ -88,7 +89,7 @@ class Dataloader(data.Dataset):
 
         if split == 2:
             return 30000
-
+            
     def getSeqLength(self):
         return self.seq_length
         

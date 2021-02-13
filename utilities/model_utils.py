@@ -9,20 +9,20 @@ def one_hot(phrase, c):
 def make_parser():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--input_ques_h5',default='data/quora_dataset/quora_data_prepro.h5',help='path to the h5file containing the preprocessed dataset')
-    parser.add_argument('--input_json',default='data/quora_dataset/quora_data_prepro.json',help='path to the json file containing additional info and vocab')
+    parser.add_argument('--input_ques_h5',default='./data/quora_data_prepro.h5',help='path to the h5file containing the preprocessed dataset')
+    parser.add_argument('--input_json',default='./data/quora_data_prepro.json',help='path to the json file containing additional info and vocab')
 
     # starting point
     parser.add_argument('--start_from', default='None', help='path to a model checkpoint to initialize model weights from. Empty = don\'t')
 
     # # Model settings
     parser.add_argument('--model', default='EDLPS', help='which model to use? EDL|EDP|EDLP|EDLPS|EDLPG|EDLPGS|EDG|EDPG')
-    parser.add_argument('--batch_size', type=int, default=150, help='what is theutils batch size in number of images per batch? (there will be x seq_per_img sentences)')
+    parser.add_argument('--batch_size', type=int, default=100, help='what is the utils batch size in number of images per batch? (there will be x seq_per_img sentences)')
     parser.add_argument('--input_encoding_size', type=int, default=512,help='the encoding size of each token in the vocabulary, and the image.')
     parser.add_argument('--att_size', type=int, default=512, help='size of sttention vector which refer to k in paper')
     parser.add_argument('--emb_size',type=int, default=512, help='the size after embeeding from onehot')
     parser.add_argument('--rnn_layers',type=int, default=1, help='number of the rnn layer')
-    parser.add_argument('--train_dataset_len', type=int, default=100000, help='length of train dataset')
+    parser.add_argument('--train_dataset_len', type=int, default=50000, help='length of train dataset')
     parser.add_argument('--val_dataset_len', type=int, default=30000, help='length of validation dataset')
 
     # Optimization
@@ -37,7 +37,7 @@ def make_parser():
     parser.add_argument('--max_iters', type=int, default=-1, help='max number of iterations to run for (-1 = run forever)')
     parser.add_argument('--iterPerEpoch', default=1250, type=int)
     parser.add_argument('--drop_prob_lm', type=float, default=0.5, help='strength of drop_prob_lm in the Language Model RNN')
-    parser.add_argument('--n_epoch', type=int, default=1, help='number of epochs during training')
+    parser.add_argument('--n_epoch', type=int, default=2, help='number of epochs during training')
 
     # Evaluation/Checkpointing
 
@@ -55,13 +55,13 @@ def make_parser():
     parser.add_argument('--gpuid', type=int, default=-1, help='which gpu to use. -1 = use CPU')
     parser.add_argument('--nGPU', type=int, default=3, help='Number of GPUs to use by default')
 
-    #text encoder
+    #text encoder and decoder
     parser.add_argument('--emb_dim',type=int, default=512,help='dim of word embedding')
     parser.add_argument('--emb_hid_dim', type=int, default=256,help='hidden dim of word embedding')
     parser.add_argument('--enc_dropout', type=float, default=0.5,help='dropout for encoder module')
     parser.add_argument('--enc_rnn_dim', default=512, type=int, help='size of the rnn in number of hidden nodes in each layer of gru in encoder')
     parser.add_argument('--enc_dim', type=int, default=512,help='size of the encoded sentence')
-    parser.add_argument('--dec_rnn_dim', default=512, type=int, help='size of the rnn in number of hidden nodes in each layer of lstm in decoder')
+    parser.add_argument('--dec_rnn_dim', default=512, type=int, help='size of the rnn in number of hidden nodes in each layer of gru in decoder')
     parser.add_argument('--dec_dropout',type=float, default=0.5,help='dropout for decoder module')
 
     return parser

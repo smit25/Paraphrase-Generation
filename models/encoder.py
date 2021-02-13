@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
-
-import utilities.model_utils as utils
+import sys
 
 """
 SEED = 1234
@@ -15,10 +14,13 @@ torch.backends.cudnn.deterministic = True
 """
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-class Encoder(nn.module):
+def one_hot(phrase, c):
+    return torch.zeros(*phrase.size(), c, device=device).scatter_(-1, phrase.unsqueeze(-1), 1)
+
+class Encoder(nn.Module):
 
     def __init__(self, opt):
-        super(Encoder).__init__()
+        super(Encoder,self).__init__()
 
         self.max_seq_len = opt["max_seq_len"]
         self.vocab_sz = opt["vocab_sz"]
@@ -41,9 +43,12 @@ class Encoder(nn.module):
         phrase : given phrase , shape = (max sequence length, batch size)
 
         """
-        emb = self.emb_layer(utils.one_hot(phrase, self.vocab_sz))
-        out_rnn = self.enc_rnn(emb)[1]
-        print('OUT RNN: ', out_rnn)
-        enc_phrase = self.enc_lin(out_rnn)
+        #print('phrase shape', phrase.shape)
+        emb = self.emb_layer(one_hot(phrase, self.vocab_sz))
+        #print('end emb shape', emb.shape)
+        enc_out_rnn = self.enc_rnn(emb)[1]
+        #print('OUT RNN: ', enc_out_rnn.shape)
+        enc_phrase = self.enc_lin(enc_out_rnn)
+        #print('Encoder out', enc_phrase.shape)
 
         return enc_phrase
