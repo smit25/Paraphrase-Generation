@@ -32,7 +32,7 @@ class Encoder(nn.Module):
             nn.Linear(opt["emb_hid_dim"], opt["emb_dim"]),
             nn.Threshold(0.000001, 0))
         
-        self.enc_rnn = nn.GRU(opt["emb_dim"], opt["enc_rnn_dim"])
+        self.enc_rnn = nn.GRU(opt["emb_dim"], opt["enc_rnn_dim"], bidirectional = True)
 
         self.enc_lin = nn.Sequential(
             nn.Dropout(opt["enc_dropout"]),

@@ -27,7 +27,7 @@ class Decoder(nn.Module):
 
         self.dec_emb = nn.Embedding(opt["vocab_sz"], opt["emb_dim"])
 
-        self.dec_rnn = nn.GRU(opt["emb_dim"], opt["dec_rnn_dim"])
+        self.dec_rnn = nn.GRU(opt["emb_dim"], opt["dec_rnn_dim"], bidirectional = True)
 
         self.dec_lin = nn.Sequential(
             nn.Dropout(opt["dec_dropout"]),

@@ -34,14 +34,15 @@ def prepro_input(input_sent, max_len = 26):
     EOS, SOS = dict_len, dict_len +1
     itow[EOS] = '<EOS>'
     itow[SOS] = '<SOS>'
-
+    wtoi['<EOS>'] = EOS
+    wtoi['<SOS>'] = SOS
     sent = word_tokenize(input_sent)
     n = len(sent)
 
     for i,word in enumerate(sent):
         sent[i] = (word if word in vocab else 'UNK')
 
-    input_array = np.zeroes(min(n, max_len), dtype = 'uint32')
+    input_array = np.zeroes(max_len, dtype = 'uint32')
     for i, word in enumerate(sent):
         if i< max_len:
             input_array[i] = wtoi[word]
