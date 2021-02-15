@@ -1,0 +1,11 @@
+vocab.txt
+*/__pycache__/*
+.vscode
+.vscode/*
+logs
+logs/*
+samples
+samples/*
+save
+save/*
+*/.git/*
