@@ -28,15 +28,15 @@ class Encoder(nn.Module):
         self.emb_layer = nn.Sequential(
             nn.Linear(opt["vocab_sz"], opt["emb_hid_dim"]),
             nn.Threshold(0.000001, 0),
-            nn.Dropout(opt["enc_dropout"]),
-            nn.Linear(opt["emb_hid_dim"], opt["emb_dim"]),
+            nn.Dropout(opt['enc_dropout']),
+            nn.Linear(opt['emb_hid_dim'], opt['emb_dim']),
             nn.Threshold(0.000001, 0))
         
-        self.enc_rnn = nn.GRU(opt["emb_dim"], opt["enc_rnn_dim"], bidirectional = True)
+        self.enc_rnn = nn.GRU(opt['emb_dim'], opt['enc_rnn_dim'])
 
         self.enc_lin = nn.Sequential(
-            nn.Dropout(opt["enc_dropout"]),
-            nn.Linear(opt["enc_rnn_dim"], opt["enc_dim"]))
+            nn.Dropout(opt['enc_dropout']),
+            nn.Linear(opt['enc_rnn_dim'], opt['enc_dim']))
 
     def forward(self, phrase):
         """
