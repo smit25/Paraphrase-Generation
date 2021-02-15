@@ -6,7 +6,7 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 def one_hot(phrase, c):
     return torch.zeros(*phrase.size(), c, device=device).scatter_(-1, phrase.unsqueeze(-1), 1)
 
-def make_parser():
+def make_parser(train_len, val_len):
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--input_ques_h5',default='./data/quora_data_prepro.h5',help='path to the h5file containing the preprocessed dataset')
@@ -22,8 +22,8 @@ def make_parser():
     parser.add_argument('--att_size', type=int, default=512, help='size of sttention vector which refer to k in paper')
     parser.add_argument('--emb_size',type=int, default=512, help='the size after embeeding from onehot')
     parser.add_argument('--rnn_layers',type=int, default=1, help='number of the rnn layer')
-    parser.add_argument('--train_dataset_len', type=int, default=50000, help='length of train dataset')
-    parser.add_argument('--val_dataset_len', type=int, default=30000, help='length of validation dataset')
+    parser.add_argument('--train_dataset_len', type=int, default=train_len, help='length of train dataset')
+    parser.add_argument('--val_dataset_len', type=int, default=val_len, help='length of validation dataset')
 
     # Optimization
     parser.add_argument('--optim',default='rmsprop',help='what update to use? rmsprop|sgd|sgdmom|adagrad|adam')

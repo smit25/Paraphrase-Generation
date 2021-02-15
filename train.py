@@ -1,5 +1,5 @@
 import os
-import subprocess
+#import subprocess
 import time
 import torchvision
 import torch
@@ -16,6 +16,15 @@ from models.encoder import Encoder
 from models.decoder import Decoder
 from models.seq2seq import Seq2Seq
 
+"""
+To view the data written by tensorboardX
+tensorboard --logdir <path of logs directory>
+In my case, pathdir = 'logs/'
+
+"""
+
+train_len = 100000
+val_len = 10000
 # function to initialize model weights
 def init_weights(model):
     for name, param in model.named_parameters():
@@ -23,7 +32,7 @@ def init_weights(model):
 
 def train():
     # store parser arguements in a variable
-    parser = model_utils.make_parser()
+    parser = model_utils.make_parser(train_len, val_len)
     args = parser.parse_args()
 
     #load the data
@@ -81,7 +90,7 @@ def train():
     
     # TRAINING
     print('----------- BEGIN TRAINING -------------')
-    for epoch in range(opt['epochs']):
+    for epoch in range(1,opt['epochs']+1):
         epoch_l1 = 0
         epoch_l2 = 0
         itr = 0
@@ -114,9 +123,15 @@ def train():
             pph = []
             gpph = []
 
-            ph += decode_sequence(data.index_to_word, phrase)
-            pph += decode_sequence(data.index_to_word, paraphrase)
-            gpph += decode_sequence(data.index_to_word, torch.argmax(out, dim=-1).t())
+            ph_solo= decode_sequence(data.index_to_word, phrase)
+            print('decode_seq_phrase', ph_solo)
+            ph+=ph_solo
+            pph_solo = decode_sequence(data.index_to_word, paraphrase)
+            print('decode_seq_sim_phrase', pph_solo)
+            pph+=pph_solo
+            gpph_solo = decode_sequence(data.index_to_word, torch.argmax(out, dim=-1).t())
+            print('generated_pph', gpph_solo)
+            gpph+=gpph_solo
 
             itr += 1
             torch.cuda.empty_cache()
@@ -158,9 +173,12 @@ def train():
             pph = []
             gpph = []
 
-            ph += decode_sequence(data.index_to_word, phrase)
-            pph += decode_sequence(data.index_to_word, paraphrase)
-            gpph += decode_sequence(data.index_to_word, torch.argmax(out, dim=-1).t())
+            ph_solo_val= decode_sequence(data.index_to_word, phrase)
+            ph += ph_solo_val
+            pph_solo_val = decode_sequence(data.index_to_word, paraphrase)
+            pph += pph_solo_val
+            gpph_solo_val = decode_sequence(data.index_to_word, torch.argmax(out, dim=-1).t())
+            gpph += gpph_solo_val
 
             itr += 1
             torch.cuda.empty_cache()
@@ -175,8 +193,7 @@ def train():
         dump_samples(ph, pph, gpph,os.path.join(GEN_DIR, TIME, str(epoch) + "_val.txt"))
 
         # Save model
-        save_model(enc, optimizer, epoch, os.path.join(SAVE_DIR, TIME, 'enc' + str(epoch)))
-        save_model(dec, optimizer, epoch, os.path.join(SAVE_DIR, TIME, 'dec' + str(epoch)))
+    save_model(para_model, optimizer, epoch, 'para_model.pt')
 
     print('Training Done')
 

@@ -86,6 +86,10 @@ def build_vocab_question(imgs, params):
     # Words with less frequency mapped to 'UNK'
     print ('inserting the special UNK token')
     vocab.append('UNK')
+    print('Printing vocab', vocab)
+    print('\n')
+    print(len(vocab))
+
   
     for img in imgs:
         txt = img['processed_tokens']
@@ -162,7 +166,9 @@ def main(params):
         vocab_save.close()
     
     itow = {i+1:w for i,w in enumerate(vocab)} # 1-indexed vocab translation table
+    print('itow', len(itow))
     wtoi = {w:i+1 for i,w in enumerate(vocab)} # Bag of words model
+    print('wtoi', len(wtoi))
 
     ques_train5, ques_length_train5, question_id_train5 , dup_train5, dup_length_train5 = encode_question(imgs_train5, params, wtoi)
     print('ques train shape: ', ques_train5.shape)

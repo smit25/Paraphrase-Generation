@@ -16,18 +16,26 @@ class Dataloader(data.Dataset):
 
         # copying the dictionary    
         self.index_to_word = data_dict['index_to_word'].copy()
+        print('index_to_word', len(self.index_to_word))
         
-        if 0 not in self.index_to_word:
-            self.index_to_word[0] = 'UNK'
+        if str(0) not in self.index_to_word:
+            self.index_to_word[str(0)] = 'UNK'
         else:
             raise Exception
         
-        dict_len = len(self.index_to_word)
-        self.EOS, self.PAD, self.SOS, = dict_len, dict_len+1, dict_len +2
-        self.index_to_word[self.EOS] = '<EOS>'
-        self.index_to_word[self.PAD] = '<PAD>'
-        self.index_to_word[self.SOS] = '<SOS>'
-        dict_len += 3
+        # dict_len = len(self.index_to_word)
+        # self.EOS, self.PAD, self.SOS, = dict_len, dict_len+1, dict_len +2
+        # self.index_to_word[self.EOS] = '<EOS>'
+        # self.index_to_word[self.PAD] = '<PAD>'
+        # self.index_to_word[self.SOS] = '<SOS>'
+        # dict_len += 3
+
+        self.EOS = len(self.index_to_word)
+        self.index_to_word[str(self.EOS)] = '<EOS>'
+        self.PAD = len(self.index_to_word)
+        self.index_to_word[str(self.PAD)] = '<PAD>'
+        self.SOS = len(self.index_to_word)
+        self.index_to_word[str(self.SOS)] = '<SOS>'
 
         print('H5PY file will open')
 
@@ -72,6 +80,9 @@ class Dataloader(data.Dataset):
             new_data[i, 0] = self.SOS #adding SOS token
             new_data[i, data_len[i]+1] = self.EOS # adding EOS token
             data_len[i] += 2 # increase len of matrix for compensating the SOS and EOS
+            if i<5:
+                print('orig_data', data[i,:])
+                print('new_data', new_data[i,:])
         return new_data, data_len
 
     def __len__(self):

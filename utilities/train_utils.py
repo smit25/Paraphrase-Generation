@@ -5,7 +5,7 @@ import torch.nn as nn
 import os
 
 # Save the model after training
-def save_model(epoch, model, model_optim, save_file):
+def save_model(model, model_optim, epoch, save_file):
     checkpoint = {
         'epoch': epoch,
         'model': model.state_dict(),
@@ -24,26 +24,40 @@ def dump_samples(ph, pph, gpph, file_name):
 
 # Convert the embeddings received form the decoder into a sentence
 def decode_sequence(index_to_word, seq):
+    types1 = [type(k) for k in index_to_word.keys()]
+    print(index_to_word[str(20856)])
+    print(index_to_word[str(20857)])
+    print(index_to_word[str(20858)])
+    print(index_to_word[str(20859)])
+    #print(types1[0])
+
     row, col = seq.size()[0], seq.size()[1]
     output = []
+    print('seq', seq)
     for i in range(row):
         txt = ''
+        SOS_flag = False
         for j in range(col):
             index = seq[i, j]
-            if int(index.item()) not in index_to_word:
+            #print('index', index)
+            #print('index.item()', type(index.item()))
+            if index_to_word.get(str(index.item())) == None:
                 #print("UNK token ", str(index.item()))
-                word = index_to_word[len(index_to_word) - 1]
+                #print('Smit', len(index_to_word) -1)
+                word = index_to_word[str(len(index_to_word)-1)] # UNK Token
             else:
-                word = index_to_word[int(index.item())]
+                word = index_to_word[str(index.item())]
             if word == '<EOS>':
                 txt = txt + ' ' + word
                 break
-            if word == '<SOS>':
+            if word == '<SOS>' and not SOS_flag:
                 txt += '<SOS>'
+                SOS_flag = True
                 continue
-            if j > 0:
+            if j > 0 and word != '<SOS>':
                 txt = txt + ' '
-            txt += word
+            if not SOS_flag or word != '<SOS>':
+                txt += word
         output.append(txt)
     return output
 
@@ -61,7 +75,7 @@ def prob_to_pred(prob):
 
 # Evaluation function
 def getObjsForScores(real_sents, pred_sents):
-    class coco:
+    class score:
         def __init__(self, sents):
             self.sents = sents
             self.imgToAnns = [[{'caption': sents[i]}] for i in range(len(sents))]
@@ -69,7 +83,7 @@ def getObjsForScores(real_sents, pred_sents):
         def getImgIds(self):
             return [i for i in range(len(self.sents))]
 
-    return coco(real_sents), coco(pred_sents)
+    return score(real_sents), score(pred_sents)
 
 
 def evaluate_scores(s1, s2):
@@ -77,8 +91,8 @@ def evaluate_scores(s1, s2):
     '''
     calculates scores and return the dict with score_name and value
     '''
-    coco, cocoRes = getObjsForScores(s1, s2)
-    evalObj = COCOEvalCap(coco, cocoRes)
+    score, scoreRes = getObjsForScores(s1, s2)
+    evalObj = COCOEvalCap(score, scoreRes)
     evalObj.evaluate()
 
     return evalObj.eval
