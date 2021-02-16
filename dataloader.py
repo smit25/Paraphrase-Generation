@@ -2,7 +2,29 @@ import h5py
 import copy
 import json
 import torch
+import pickle
 import torch.utils.data as data
+
+def load_pickle():
+        train_og ={}
+        train_d = {}
+        val_og = {}
+        val_d = {}
+
+        with open('train_qn_pn.txt', 'rb') as _open:
+            train_og = pickle.load(_open)
+            _open.close()
+        with open('train_d_pn.txt', 'rb') as _open:
+            train_d = pickle.load(_open)
+            _open.close()
+        with open('val_qn_pn.txt', 'rb') as _open:
+            val_og = pickle.load(_open)
+            _open.close()
+        with open('val_d_pn.txt', 'rb') as _open:
+            val_d = pickle.load(_open)
+            _open.close()
+        
+        return {**train_og, **val_og}, {**train_d, **val_d}
 
 class Dataloader(data.Dataset):
     def __init__(self, input_json_path, input_h5py_path):
@@ -13,10 +35,15 @@ class Dataloader(data.Dataset):
             data_dict = json.load(input_file)
 
         self.index_to_word = {}
+        self.ppn_dict_og = {}
+        self.ppn_dict_d = {}
 
         # copying the dictionary    
         self.index_to_word = data_dict['index_to_word'].copy()
         print('index_to_word', len(self.index_to_word))
+
+        #self.ppn_dict_og, self.ppn_dict_d = load_pickle()
+
         
         if str(0) not in self.index_to_word:
             self.index_to_word[str(0)] = 'UNK'
@@ -67,6 +94,7 @@ class Dataloader(data.Dataset):
         qa_data.close()
 
         self.ques = torch.cat([ques_train, ques_test])
+        print(self.ques.shape)
         self.len = torch.cat([ques_len_train, ques_len_test])
         self.label = torch.cat([label_train, label_test])
         self.label_len = torch.cat([label_len_train, label_len_test])
@@ -84,6 +112,28 @@ class Dataloader(data.Dataset):
                 print('orig_data', data[i,:])
                 print('new_data', new_data[i,:])
         return new_data, data_len
+
+    def load_pickle():
+        train_og ={}
+        train_d = {}
+        val_og = {}
+        val_d = {}
+
+        with open('train_qn_pn.txt', 'rb') as _open:
+            train_og = pickle.load(_open)
+            _open.close()
+        with open('train_d_pn.txt', 'rb') as _open:
+            train_d = pickle.load(_open)
+            _open.close()
+        with open('val_qn_pn.txt', 'rb') as _open:
+            val_og = pickle.load(_open)
+            _open.close()
+        with open('val_d_pn.txt', 'rb') as _open:
+            val_d = pickle.load(_open)
+            _open.close()
+        
+        return {**train_og, **val_og}, {**train_d, **val_d}
+
 
     def __len__(self):
         return self.len.size()[0]

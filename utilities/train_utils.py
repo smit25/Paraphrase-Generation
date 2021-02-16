@@ -23,13 +23,16 @@ def dump_samples(ph, pph, gpph, file_name):
     file.close()
 
 # Convert the embeddings received form the decoder into a sentence
-def decode_sequence(index_to_word, seq):
+def decode_sequence(index_to_word, ppn_dict_og, ppn_dict_d, seq, idx, str):
     types1 = [type(k) for k in index_to_word.keys()]
-    print(index_to_word[str(20856)])
-    print(index_to_word[str(20857)])
-    print(index_to_word[str(20858)])
-    print(index_to_word[str(20859)])
     #print(types1[0])
+    # ppn_list = []
+    # if str == 'para':
+    #     ppn_list = [ppn_dict_og[idx] if len(ppn_dict_og[idx]) > len(ppn_dict_d[idx]) else ppn_dict_d[idx]]
+    # elif str == 'og':
+    #     ppn_list = ppn_dict_og[idx]
+    # else:
+    #     ppn_list = ppn_dict_d[idx]
 
     row, col = seq.size()[0], seq.size()[1]
     output = []
@@ -37,16 +40,19 @@ def decode_sequence(index_to_word, seq):
     for i in range(row):
         txt = ''
         SOS_flag = False
+        ppn_count = 0
         for j in range(col):
             index = seq[i, j]
             #print('index', index)
             #print('index.item()', type(index.item()))
             if index_to_word.get(str(index.item())) == None:
-                #print("UNK token ", str(index.item()))
                 #print('Smit', len(index_to_word) -1)
                 word = index_to_word[str(len(index_to_word)-1)] # UNK Token
             else:
                 word = index_to_word[str(index.item())]
+            if word == 'UNK' and ppn_count < len(ppn_list):
+                word = ppn_list[ppn_count]
+                ppn_count+=1
             if word == '<EOS>':
                 txt = txt + ' ' + word
                 break

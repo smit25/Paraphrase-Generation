@@ -25,6 +25,7 @@ In my case, pathdir = 'logs/'
 
 train_len = 100000
 val_len = 10000
+batch_size = 150
 # function to initialize model weights
 def init_weights(model):
     for name, param in model.named_parameters():
@@ -32,7 +33,7 @@ def init_weights(model):
 
 def train():
     # store parser arguements in a variable
-    parser = model_utils.make_parser(train_len, val_len)
+    parser = model_utils.make_parser(train_len, val_len, batch_size)
     args = parser.parse_args()
 
     #load the data
@@ -96,7 +97,7 @@ def train():
         itr = 0
         para_model.train()
 
-        for phrase, phrase_len, paraphrase, paraphrase_len, _ in tqdm(
+        for phrase, phrase_len, paraphrase, paraphrase_len, idx in tqdm(
                 train_loader, ascii=True, desc="train" + str(epoch)):
 
             phrase = phrase.to(DEVICE)
@@ -123,13 +124,13 @@ def train():
             pph = []
             gpph = []
 
-            ph_solo= decode_sequence(data.index_to_word, phrase)
+            ph_solo= decode_sequence(data.index_to_word, data.ppn_dict_og, data.ppn_dict_d, phrase, idx, 'og')
             print('decode_seq_phrase', ph_solo)
             ph+=ph_solo
-            pph_solo = decode_sequence(data.index_to_word, paraphrase)
+            pph_solo = decode_sequence(data.index_to_word, data.ppn_dict_og, data.ppn_dict_d, paraphrase, idx, 'dup')
             print('decode_seq_sim_phrase', pph_solo)
             pph+=pph_solo
-            gpph_solo = decode_sequence(data.index_to_word, torch.argmax(out, dim=-1).t())
+            gpph_solo = decode_sequence(data.index_to_word, data.ppn_dict_og, data.ppn_dict_d, torch.argmax(out, dim=-1).t(), idx, 'para')
             print('generated_pph', gpph_solo)
             gpph+=gpph_solo
 
@@ -163,6 +164,8 @@ def train():
             # dec_out = dec(phrase = phrase.t(), enc_phrase = enc_phrase, similar_phrase = paraphrase, teacher_forcing_ratio = 0.6, train = True)
 
             out, enc_out, enc_sim_phrase = para_model(phrase = phrase,sim_phrase=paraphrase, training_mode=True)
+            print('input: ', phrase)
+            print('out:', out)
 
             loss_1, loss_2 = cross_entropy_loss(out.permute(1, 2, 0), paraphrase),joint_emb_loss(enc_out, enc_sim_phrase)
 

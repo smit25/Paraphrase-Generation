@@ -6,7 +6,7 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 def one_hot(phrase, c):
     return torch.zeros(*phrase.size(), c, device=device).scatter_(-1, phrase.unsqueeze(-1), 1)
 
-def make_parser(train_len, val_len):
+def make_parser(train_len, val_len, batch_size):
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--input_ques_h5',default='./data/quora_data_prepro.h5',help='path to the h5file containing the preprocessed dataset')
@@ -16,8 +16,7 @@ def make_parser(train_len, val_len):
     parser.add_argument('--start_from', default='None', help='path to a model checkpoint to initialize model weights from. Empty = don\'t')
 
     # # Model settings
-    parser.add_argument('--model', default='EDLPS', help='which model to use? EDL|EDP|EDLP|EDLPS|EDLPG|EDLPGS|EDG|EDPG')
-    parser.add_argument('--batch_size', type=int, default=100, help='what is the utils batch size in number of images per batch? (there will be x seq_per_img sentences)')
+    parser.add_argument('--batch_size', type=int, default=batch_size, help='what is the utils batch size in number of images per batch? (there will be x seq_per_img sentences)')
     parser.add_argument('--input_encoding_size', type=int, default=512,help='the encoding size of each token in the vocabulary, and the image.')
     parser.add_argument('--att_size', type=int, default=512, help='size of sttention vector which refer to k in paper')
     parser.add_argument('--emb_size',type=int, default=512, help='the size after embeeding from onehot')

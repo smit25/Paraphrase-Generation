@@ -1,73 +1,102 @@
 import torch
 import pickle
 from utilities.prepro_utils import prepro_input
-from modify.antonym import Antonym
-from modify.synonym import Synonym
+from models.seq2seq import Seq2Seq
+#from modify.antonym import Antonym
+#from modify.synonym import Synonym
 
-"""
-input_array, wtoi, itow = prepro_input(input_sent)
-input_len = input_array.size()[0]
-input_tensor = torch.from_numpy(input_array.astype(int))
-
-new_tensor = torch.zeros(input_tensor.size()[0]+2, dtype = torch.long)
-new_tensor[1: input_len + 1] = input_tensor[0:input_len]
-new_tensor[0], new_tensor[input_len + 1] = len(itow)-1, len(itow) -2
-"""
-
-working_model = torch.load('para_model.pt') # loading the Seq2Seq model
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+working_model = torch.load('para_model.pt', map_location = device) # loading the Seq2Seq model
 working_model.eval()
 
-def arr_to_ten(array, wtoi):
+
+def arr_to_ten(array, wtoi, sent_len, c=1):
   tensor = torch.from_numpy(array.astype(int))
   n = tensor.size()[0]
-  new_tensor = torch.zeroes(n+2, dtype = torch.long)
-  new_tensor[1:n+1] = tensor[:n]
-  new_tensor[0] = wtoi['<SOS>']
-  new_tensor[n+1] = wtoi['<EOS>']
+  new_tensor = torch.zeros(n+2, dtype = torch.long) + wtoi['<PAD>']
+  if c==1:
+    new_tensor[1:sent_len+1] = tensor[:sent_len]
+    new_tensor[0] = wtoi['<SOS>']
+    new_tensor[sent_len+1] = wtoi['<EOS>']
+  elif c==2:
+    b = False
+    for i in range(n):
+      if tensor[i] == 0 and not b:
+        new_tensor[i+1] = wtoi['<EOS>']
+        b = True
+      if b:
+        new_tensor[i+1] = wtoi['<PAD>']
+      if not b:
+        new_tensor[i+1] = tensor[i]
+    new_tensor[0] = wtoi['<SOS>']
   return new_tensor
 
-def decode_seq(itow, seq):
-  row, col = seq.size()[0], seq.size()[1]
-  output = []
-  for i in range(row):
+
+def decode_seq(itow, seq, ppn_list):
+    # types = [type(k) for k in itow.keys()]
+    # print(types[1])
+    # print(types[28757])
+    row, col = seq.size()[0], seq.size()[1]
+    output = []
+    print('seq', seq)
     txt = ''
+    SOS_flag = False
+    ppn_count = 0
+    print('itow_len', len(itow))
     for j in range(col):
-      index = seq[i, j]
-      if int(index.item()) not in itow:
-        #print("UNK token ", str(index.item()))
-        word = itow[len(itow) - 1]
-      else:
-        word = itow[int(index.item())]
-      if word == '<EOS>':
-        txt = txt + ' ' + word
-        break
-      if word == '<SOS>':
-        txt += '<SOS>'
-        continue
-      if j > 0:
-        txt = txt + ' '
-        txt += word
+        index = seq[0][j]
+        if int(index.item()) not in itow:
+                #print('Smit', len(index_to_word) -1)
+            word = itow[len(itow)-1] # UNK Token
+            print('Smit')
+        else:
+            word = itow[index.item()]
+        print('word: ', word)
+        if word == 'UNK' and ppn_count < len(ppn_list):
+            word = ppn_list[ppn_count]
+            ppn_count+=1
+        if word == '<EOS>':
+            txt += ' '
+            txt += word
+            break
+        if word == '<SOS>' and not SOS_flag:
+            txt += '<SOS>'
+            SOS_flag = True
+            continue
+        if j > 0 and word != '<SOS>':
+            txt = txt + ' '
+        if not SOS_flag or word != '<SOS>':
+            txt += word
     output.append(txt)
-  return output
+    return output
+
 
 def main():
-  input_sent = 'A beautiful castle '
+  input_sent = 'How do we prepare this dish'
 
-  input_array, w_to_i, i_to_w = prepro_input(input_sent)
-  input_tensor = arr_to_ten(input_array, w_to_i)
+  input_array, w_to_i, i_to_w, ppn_list, sent_len = prepro_input(input_sent)
+
+  input_tensor = arr_to_ten(input_array, w_to_i, sent_len)
   input_tensor = torch.unsqueeze(input_tensor, 0) # Add extra dimension
+  dummy_tensor = torch.zeros(input_tensor.size(), dtype = torch.long)
+  print('input_sent', decode_seq(i_to_w, input_tensor, []))
+  print('input_tensor', input_tensor)
 
-  output = working_model(input_tensor, training_mode = False)
-  print(output)
+  output = working_model(input_tensor, input_tensor, training_mode = False)
+  #print(output)
 
-  paraphrase = decode_seq(i_to_w, torch.argmax(output, dim =-1).t())
+  paraphrase = decode_seq(i_to_w, torch.argmax(output, dim =-1).t(), ppn_list)
   print(paraphrase)
 
-  syn = Synonym(paraphrase)
-  syn_para = syn.main()
-  ant = Antonym(paraphrase)
-  ant2 = Antonym(syn_para)
-  ant_para, ant2_para = ant.main(), ant2.main()
+  #syn = Synonym(paraphrase)
+  #syn_para = syn.main()
+  #ant = Antonym(paraphrase)
+  #ant2 = Antonym(syn_para)
+  #ant_para, ant2_para = ant.main(), ant2.main()
+
+
+if __name__ == '__main__':
+  main()
 
 
 

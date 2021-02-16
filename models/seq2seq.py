@@ -35,7 +35,7 @@ class Seq2Seq(nn.Module):
 
     def forward(self, phrase, sim_phrase, training_mode = True):
         enc_phrase = self.encoder(phrase = phrase.t())
-        out = self.decoder(phrase = phrase.t(), enc_phrase = enc_phrase, similar_phrase = sim_phrase.t(), teacher_forcing_ratio = 0.6)
+        out = self.decoder(phrase = phrase.t(), enc_phrase = enc_phrase, similar_phrase = sim_phrase.t(), teacher_forcing = True)
 
         if training_mode:
             #print('similar_phrase_shape', sim_phrase.shape)
