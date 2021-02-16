@@ -2,8 +2,8 @@ import torch
 import pickle
 from utilities.prepro_utils import prepro_input
 from models.seq2seq import Seq2Seq
-#from modify.antonym import Antonym
-#from modify.synonym import Synonym
+from modify.antonym import Antonym
+from modify.synonym import Synonym
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 working_model = torch.load('para_model.pt', map_location = device) # loading the Seq2Seq model
@@ -72,8 +72,9 @@ def decode_seq(itow, seq, ppn_list):
 
 
 def main():
-  input_sent = 'How do we prepare this dish'
+  input_sent = 'It is not beautiful'
 
+  """
   input_array, w_to_i, i_to_w, ppn_list, sent_len = prepro_input(input_sent)
 
   input_tensor = arr_to_ten(input_array, w_to_i, sent_len)
@@ -87,13 +88,16 @@ def main():
 
   paraphrase = decode_seq(i_to_w, torch.argmax(output, dim =-1).t(), ppn_list)
   print(paraphrase)
+  """
 
-  #syn = Synonym(paraphrase)
-  #syn_para = syn.main()
-  #ant = Antonym(paraphrase)
-  #ant2 = Antonym(syn_para)
-  #ant_para, ant2_para = ant.main(), ant2.main()
-
+  syn = Synonym(input_sent)
+  syn_para = syn.main()
+  print('syn_para', syn_para)
+  ant = Antonym(input_sent)
+  ant2 = Antonym(syn_para)
+  ant_para, ant2_para = ant.main(), ant2.main() 
+  print('ant_para', ant_para)
+  print('ant2_para', ant2_para)
 
 if __name__ == '__main__':
   main()
