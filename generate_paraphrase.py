@@ -4,11 +4,22 @@ from utilities.prepro_utils import prepro_input
 from models.seq2seq import Seq2Seq
 from modify.antonym import Antonym
 from modify.synonym import Synonym
+from modify.tenses import Tense
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 working_model = torch.load('para_model.pt', map_location = device) # loading the Seq2Seq model
 working_model.eval()
 
+"""
+Steps to convert a sentence to tensor:
+- prerocess input 
+  - tokenize
+  - tag the words
+  - make word to index map
+  - map every word to its corresponding index and make an array
+- make a torch tensor from the array (arr_to_ten)
+- unsqueeze to add extra dimension
+"""
 
 def arr_to_ten(array, wtoi, sent_len, c=1):
   tensor = torch.from_numpy(array.astype(int))
@@ -74,7 +85,6 @@ def decode_seq(itow, seq, ppn_list):
 def main():
   input_sent = 'It is not beautiful'
 
-  """
   input_array, w_to_i, i_to_w, ppn_list, sent_len = prepro_input(input_sent)
 
   input_tensor = arr_to_ten(input_array, w_to_i, sent_len)
@@ -88,16 +98,18 @@ def main():
 
   paraphrase = decode_seq(i_to_w, torch.argmax(output, dim =-1).t(), ppn_list)
   print(paraphrase)
-  """
 
-  syn = Synonym(input_sent)
-  syn_para = syn.main()
-  print('syn_para', syn_para)
+  tense = Tense(input_sent, paraphrase)
+  tense_rect_out = tense.main()
+  syn = Synonym(tense_rect_out)
+  syn_out = syn.main()
+  print('syn_para', syn_out)
   ant = Antonym(input_sent)
-  ant2 = Antonym(syn_para)
+  ant2 = Antonym(syn_out)
   ant_para, ant2_para = ant.main(), ant2.main() 
-  print('ant_para', ant_para)
-  print('ant2_para', ant2_para)
+  # print('ant_para', ant_para)
+  # print('ant2_para', ant2_para)
+  
 
 if __name__ == '__main__':
   main()

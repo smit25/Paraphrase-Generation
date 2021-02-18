@@ -5,26 +5,6 @@ import torch
 import pickle
 import torch.utils.data as data
 
-def load_pickle():
-        train_og ={}
-        train_d = {}
-        val_og = {}
-        val_d = {}
-
-        with open('train_qn_pn.txt', 'rb') as _open:
-            train_og = pickle.load(_open)
-            _open.close()
-        with open('train_d_pn.txt', 'rb') as _open:
-            train_d = pickle.load(_open)
-            _open.close()
-        with open('val_qn_pn.txt', 'rb') as _open:
-            val_og = pickle.load(_open)
-            _open.close()
-        with open('val_d_pn.txt', 'rb') as _open:
-            val_d = pickle.load(_open)
-            _open.close()
-        
-        return {**train_og, **val_og}, {**train_d, **val_d}
 
 class Dataloader(data.Dataset):
     def __init__(self, input_json_path, input_h5py_path):
@@ -113,7 +93,7 @@ class Dataloader(data.Dataset):
                 print('new_data', new_data[i,:])
         return new_data, data_len
 
-    def load_pickle():
+    def load_pickle(self):
         train_og ={}
         train_d = {}
         val_og = {}

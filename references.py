@@ -9,4 +9,3 @@
 # https://analyticsindiamag.com/why-are-some-languages-harder-to-learn-for-ai/ - TRANSLATE SELECTION
 # https://www.aclweb.org/anthology/P02-1040.pdf - BLEU
 # https://www.aclweb.org/anthology/W04-1013.pdf - ROGUE
-# https://www.cs.cmu.edu/~alavie/METEOR/pdf/Banerjee-Lavie-2005-METEOR.pdf - METEOR
