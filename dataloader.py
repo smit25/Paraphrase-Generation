@@ -15,8 +15,8 @@ class Dataloader(data.Dataset):
             data_dict = json.load(input_file)
 
         self.index_to_word = {}
-        self.ppn_dict_og = {}
-        self.ppn_dict_d = {}
+        #self.ppn_dict_og = {}
+        #self.ppn_dict_d = {}
 
         # copying the dictionary    
         self.index_to_word = data_dict['index_to_word'].copy()
@@ -88,31 +88,23 @@ class Dataloader(data.Dataset):
             new_data[i, 0] = self.SOS #adding SOS token
             new_data[i, data_len[i]+1] = self.EOS # adding EOS token
             data_len[i] += 2 # increase len of matrix for compensating the SOS and EOS
-            if i<5:
-                print('orig_data', data[i,:])
-                print('new_data', new_data[i,:])
+            # if i<5:
+            #     print('orig_data', data[i,:])
+            #     print('new_data', new_data[i,:])
         return new_data, data_len
 
     def load_pickle(self):
-        train_og ={}
-        train_d = {}
-        val_og = {}
-        val_d = {}
+        og = {}
+        d = {}
 
-        with open('train_qn_pn.txt', 'rb') as _open:
-            train_og = pickle.load(_open)
+        with open('question_pn.txt', 'rb') as _open:
+            og = pickle.load(_open)
             _open.close()
-        with open('train_d_pn.txt', 'rb') as _open:
-            train_d = pickle.load(_open)
-            _open.close()
-        with open('val_qn_pn.txt', 'rb') as _open:
-            val_og = pickle.load(_open)
-            _open.close()
-        with open('val_d_pn.txt', 'rb') as _open:
-            val_d = pickle.load(_open)
+        with open('para_pn.txt', 'rb') as _open:
+            d = pickle.load(_open)
             _open.close()
         
-        return {**train_og, **val_og}, {**train_d, **val_d}
+        return og, d
 
 
     def __len__(self):

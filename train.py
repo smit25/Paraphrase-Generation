@@ -24,7 +24,7 @@ In my case, pathdir = 'logs/'
 """
 
 train_len = 100000
-val_len = 10000
+val_len = 20000
 batch_size = 150
 # function to initialize model weights
 def init_weights(model):
@@ -124,15 +124,23 @@ def train():
             pph = []
             gpph = []
 
-            ph_solo= decode_sequence(data.index_to_word, data.ppn_dict_og, data.ppn_dict_d, phrase, idx, 'og')
-            print('decode_seq_phrase', ph_solo)
-            ph+=ph_solo
-            pph_solo = decode_sequence(data.index_to_word, data.ppn_dict_og, data.ppn_dict_d, paraphrase, idx, 'dup')
-            print('decode_seq_sim_phrase', pph_solo)
-            pph+=pph_solo
-            gpph_solo = decode_sequence(data.index_to_word, data.ppn_dict_og, data.ppn_dict_d, torch.argmax(out, dim=-1).t(), idx, 'para')
-            print('generated_pph', gpph_solo)
-            gpph+=gpph_solo
+            # PROPER NOUN TRAINING 
+            # ph_solo= decode_sequence(data.index_to_word, data.ppn_dict_og, data.ppn_dict_d, phrase, idx, 'og')
+            # print('decode_seq_phrase', ph_solo)
+            # ph+=ph_solo
+            # pph_solo = decode_sequence(data.index_to_word, data.ppn_dict_og, data.ppn_dict_d, paraphrase, idx, 'dup')
+            # print('decode_seq_sim_phrase', pph_solo)
+            # pph+=pph_solo
+            # gpph_solo = decode_sequence(data.index_to_word, data.ppn_dict_og, data.ppn_dict_d, torch.argmax(out, dim=-1).t(), idx, 'para')
+            # print('generated_pph', gpph_solo)
+            # gpph+=gpph_solo
+            
+            ph_solo= decode_sequence(data.index_to_word, phrase)
+            ph += ph_solo
+            pph_solo = decode_sequence(data.index_to_word, paraphrase)
+            pph += pph_solo
+            gpph_solo = decode_sequence(data.index_to_word, torch.argmax(out, dim=-1).t())
+            gpph += gpph_solo
 
             itr += 1
             torch.cuda.empty_cache()
@@ -175,7 +183,18 @@ def train():
             ph = []
             pph = []
             gpph = []
-
+            
+            # PROPER NOUN TRAINING 
+            # ph_solo_val= decode_sequence(data.index_to_word, data.ppn_dict_og, data.ppn_dict_d, phrase, idx, 'og')
+            # print('decode_seq_phrase', ph_solo_val)
+            # ph+=ph_solo_val
+            # pph_solo_val = decode_sequence(data.index_to_word, data.ppn_dict_og, data.ppn_dict_d, paraphrase, idx, 'dup')
+            # print('decode_seq_sim_phrase', pph_solo_val)
+            # pph+=pph_solo_val
+            # gpph_solo_val = decode_sequence(data.index_to_word, data.ppn_dict_og, data.ppn_dict_d, torch.argmax(out, dim=-1).t(), idx, 'para')
+            # print('generated_pph', gpph_solo_val)
+            # gpph+=gpph_solo_val
+            
             ph_solo_val= decode_sequence(data.index_to_word, phrase)
             ph += ph_solo_val
             pph_solo_val = decode_sequence(data.index_to_word, paraphrase)
