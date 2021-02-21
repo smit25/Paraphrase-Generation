@@ -11,9 +11,8 @@ TO ADD - PAWS DATASET
 import csv
 import json
 import os
-
-train_len = 50000
-test_len = 30000
+train_len = 100000
+test_len = 20000
 val_len = 20000 # extra
 
 def main():
@@ -60,11 +59,11 @@ def main():
 	outval = outval[:val_len]
 	#write the json files for train, test and val
 	print(len(out))
-	json.dump(out, open('../data/quora_raw_train.json', 'w'))
+	json.dump(out, open('./data/quora_raw_train.json', 'w'))
 	print(len(outtest))
-	json.dump(outtest, open('../data/quora_raw_test.json', 'w'))
+	json.dump(outtest, open('./data/quora_raw_test.json', 'w'))
 	print(len(outval))
-	json.dump(outval, open('../data/quora_raw_val.json', 'w'))
+	json.dump(outval, open('./data/quora_raw_val.json', 'w'))
 
 if __name__ == "__main__":
 	main()

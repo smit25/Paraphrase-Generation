@@ -11,10 +11,8 @@ from random import shuffle, seed
 import sys
 import os.path
 import argparse
-import glob
 import numpy as np
-import scipy.io
-import pdb
+import nltk
 import string
 import h5py
 from nltk.tokenize import word_tokenize
@@ -26,7 +24,20 @@ from utilities.prepro_utils import prepro_parser
 #from scipy.misc import imread, imresize
 
 maxlen = 26
-batch_size = 16
+batch_size = 150
+def replace_NNP(txt):
+    tagged_tokens = nltk.pos_tag(txt)
+    output = []
+    proper_nouns = []
+    for i,w in enumerate(txt):
+        if tagged_tokens[i] == 'NNP':
+            output.append('UNK')
+            proper_nouns.append(w)
+        else:
+            output.append(w)
+    return output, proper_nouns
+
+
 # function for Tokenizing the questions
 def tokenize(sentence, params):
     if params['token_method'] == 'nltk':
@@ -86,12 +97,20 @@ def build_vocab_question(imgs, params):
     # Words with less frequency mapped to 'UNK'
     print ('inserting the special UNK token')
     vocab.append('UNK')
+    print('Printing vocab', vocab)
+    print('\n')
+    print(len(vocab))
+
   
     for img in imgs:
         txt = img['processed_tokens']
+        #txt, p_nouns = replace_NNP(txt)
+        #img['final_question_pn'] = p_nouns
         question = [w if counts.get(w,0) > count_thr else 'UNK' for w in txt]
         img['final_question'] = question
         txt_d = img['processed_tokens_duplicate']
+        #txt_d, p_nouns_d = replace_NNP(txt_d)
+        #img['final_duplicate_pn'] = p_nouns_d
         duplicate = [w if counts.get(w,0) > count_thr else 'UNK' for w in txt_d]
         img['final_duplicate'] = duplicate
     
@@ -101,10 +120,14 @@ def build_vocab_question(imgs, params):
 def use_vocab_question(imgs, wtoi):  
     for img in imgs:
         txt = img['processed_tokens']
+        #txt, p_nouns = replace_NNP(txt)
+        #img['final_question_pn'] = p_nouns
         question = [w if wtoi.get(w,len(wtoi)+1) != (len(wtoi)+1) else 'UNK' for w in txt]
         img['final_question'] = question
-        txt_c = img['processed_tokens_duplicate']
-        duplicate = [w if w in wtoi else 'UNK' for w in txt_c]
+        txt_d = img['processed_tokens_duplicate']
+        #txt_d, p_nouns_d = replace_NNP(txt_d)
+        #img['final_duplicate_pn'] = p_nouns_d
+        duplicate = [w if w in wtoi else 'UNK' for w in txt_d]
         img['final_duplicate'] = duplicate 
 
     return imgs
@@ -138,6 +161,24 @@ def encode_question(imgs, params, wtoi):
   
     return question_arrays, question_length, question_id, duplicate_arrays, duplicate_length
 
+def save_PPN(imgs_train, imgs_test):
+    PPN_list = {}
+    PPN_list_d = {}
+    for img in imgs_train:
+        PPN_list[img['id']] = img['final_question_pn']
+        PPN_list_d[img['id']] = img['final_duplicate_pn']
+    for img in imgs_test:
+        PPN_list[img['id']] = img['final_question_pn']
+        PPN_list_d[img['id']] = img['final_duplicate_pn']
+
+    with open('question_pn.txt', 'wb') as PPN_save:
+            pickle.dump(PPN_list, PPN_save)
+            PPN_save.close()
+
+    with open('para_pn.txt', 'wb') as PPN_save:
+            pickle.dump(PPN_list, PPN_save)
+            PPN_save.close()
+
 # Calling the functions
 def main(params):
     imgs_train5 = json.load(open(params['input_train_json5'], 'r'))
@@ -162,11 +203,16 @@ def main(params):
         vocab_save.close()
     
     itow = {i+1:w for i,w in enumerate(vocab)} # 1-indexed vocab translation table
+    print('itow', len(itow))
     wtoi = {w:i+1 for i,w in enumerate(vocab)} # Bag of words model
+    print('wtoi', len(wtoi))
 
     ques_train5, ques_length_train5, question_id_train5 , dup_train5, dup_length_train5 = encode_question(imgs_train5, params, wtoi)
+    print('ques train shape: ', ques_train5.shape)
     
     imgs_test5 = use_vocab_question(imgs_test5, wtoi)
+    
+    #save_PPN(imgs_train5, imgs_test5)
     
     ques_test5, ques_length_test5, question_id_test5 , dup_test5, dup_length_test5 = encode_question(imgs_test5, params, wtoi)
     

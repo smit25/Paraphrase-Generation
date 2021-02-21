@@ -1,3 +1,6 @@
 /para_model.pt
 /utilities/__pycache__
 /vocab.txt
+/samples
+/logs
+/__pycache__
