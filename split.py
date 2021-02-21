@@ -11,9 +11,8 @@ TO ADD - PAWS DATASET
 import csv
 import json
 import os
-
 train_len = 100000
-test_len = 10000
+test_len = 20000
 val_len = 20000 # extra
 
 def main():
