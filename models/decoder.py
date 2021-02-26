@@ -35,7 +35,7 @@ class Decoder(nn.Module):
             nn.LogSoftmax(dim =-1)
         )
 
-    def forward(self, phrase, enc_phrase, similar_phrase = None, teacher_forcing = True):
+    def forward(self, phrase, enc_phrase, similar_phrase = None, teacher_forcing = False):
         """
         similar_phrase : (if teacher_forcing == True), shape = (max seq length, batch_sz)
         phrase : given phrase , shape = (max sequence length, batch size)
@@ -52,7 +52,7 @@ class Decoder(nn.Module):
         
         words = []
         h = None
-        if teacher_forcing:
+        if not teacher_forcing:
             emb_sim_phrase_dec = self.dec_emb(similar_phrase)
             #print('emb_sim_phrase', emb_sim_phrase_dec.shape) # (28, 100, 512)
             dec_rnn_inp = torch.cat([enc_phrase, emb_sim_phrase_dec[:-1, :]], dim=0) 
@@ -61,16 +61,16 @@ class Decoder(nn.Module):
             #print('out_rnn_shape', out_rnn.shape) # (28, 100, 512)
             out = self.dec_lin(out_rnn)
             #print('decoder_output', out.shape) # (28, 100, 20860)
-
-        # WITHOUT FORCED TEACHER TRAINING
-        # else:
-        #   for __ in range(self.max_seq_len):
-        #       word, h = self.dec_rnn(enc_phrase, hx=h)
-        #       word = self.dec_lin(word)
-        #       words.append(word)
-        #       word = torch.multinomial(torch.exp(word[0]), 1)
-        #       word = word.t()
-        #       enc_phrase = self.dec_emb(word)
-        #   out = torch.cat(words, dim=0).to(device)
+            print('TEACHER FORCING')
+        # WITH TEACHER FORCING TRAINING
+        else:
+          for __ in range(self.max_seq_len):
+              word, h = self.dec_rnn(enc_phrase, hx=h)
+              word = self.dec_lin(word)
+              words.append(word)
+              word = torch.multinomial(torch.exp(word[0]), 1)
+              word = word.t()
+              enc_phrase = self.dec_emb(word)
+          out = torch.cat(words, dim=0).to(device)
         
         return out

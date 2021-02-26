@@ -50,9 +50,9 @@ def decode_sequence(index_to_word, ppn_dict_og, ppn_dict_d, seq, idx, str):
                 word = index_to_word[str(len(index_to_word)-1)] # UNK Token
             else:
                 word = index_to_word[str(index.item())]
-            if word == 'UNK' and ppn_count < len(ppn_list):
-                word = ppn_list[ppn_count]
-                ppn_count+=1
+            # if word == 'UNK' and ppn_count < len(ppn_list):
+            #     word = ppn_list[ppn_count]
+            #     ppn_count+=1
             if word == '<EOS>':
                 txt = txt + ' ' + word
                 break

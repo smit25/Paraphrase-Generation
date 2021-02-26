@@ -260,8 +260,7 @@ class Tense():
 
     def _get_conjuncts(self, tok):
       """
-      Return conjunct dependents of the leftmost conjunct in a coordinated phrase,
-      e.g. "Burton, [Dan], and [Josh] ...".
+      Return conjunct dependents of the leftmost conjunct in a coordinated phrase
       """
       return [right for right in tok.rights
             if right.dep_ == 'conj']
@@ -269,8 +268,8 @@ class Tense():
 # Returns True if token is a plural noun else False
     def is_plural_noun(self, token):
       """
-      Args:
-        token (``spacy.Token``): parent document must have POS information
+        token (``spacy.Token``)
+        parent document must have POS information
       """
       if token.doc.is_tagged is False:
         print('ValueError')

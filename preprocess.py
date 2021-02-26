@@ -77,9 +77,9 @@ def build_vocab_question(imgs, params):
     vocab = [w for w,n in counts.items() if n > count_thr]   
     low_count = sum(counts[w] for w in low_words)
 
-    #print ('number of bad words: %d/%d = %.2f%%' % (len(low_words), len(counts), len(low_words)*100.0/len(counts)))
-    #print ('number of words in vocab would be %d' % (len(vocab), ))
-    #print ('number of UNKs: %d/%d = %.2f%%' % (low_count, total_words, low_count*100.0/total_words))
+    print ('number of bad words: %d/%d = %.2f%%' % (len(low_words), len(counts), len(low_words)*100.0/len(counts)))
+    print ('number of words in vocab would be %d' % (len(vocab), ))
+    print ('number of UNKs: %d/%d = %.2f%%' % (low_count, total_words, low_count*100.0/total_words))
 
     # Words with less frequency mapped to 'UNK'
     #print ('inserting the special UNK token')
