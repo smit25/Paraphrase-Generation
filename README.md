@@ -92,7 +92,7 @@ tensorboard --logdir <path of logs directory>
 This command will tell you where you can see your logs on browser, commonly it is `localhost:6006` but you can change it using `--port` argument in above command.
 
 ### Modification Introduced
-1. Proper Noun Segregation: All proper nouns (pos_tag = ‘PPN’) in the sentence are stored locally and replaced with ‘UNK’. After the paraphrase for the sentence is generated, the ‘UNK’ are replaced with the original words
+1. Proper Noun Segregation: All proper nouns (pos_tag = ‘PPN’) in the sentence are stored locally and replaced with ‘UNK’. After the paraphrase for the sentence is generated, the ‘UNK’ are replaced with the original words.
 2.Expansion of the Bag of Words: Originally, NLTK corpus was used to make the BOW, but limitations of Google Colab (tensor memory issue) made it redundant, hence words from Project Gutenberg were used to expand the BOW.
 
 
@@ -114,7 +114,7 @@ The Seq2Seq trained model and the lexical modifiers are called simultaneously an
 **Note** To apply lexical modification only, change the code in 'generate_paraphrase.py' and directly put the input sentence in the modifier object instances.
 
 ##### Examples
-Some examples of paraphrase generated during validation
+Some examples of paraphrase generated during validation.
 
 Original Sentence | Paraphrase Generated
 ---|---|
@@ -124,7 +124,7 @@ Why do people ask questions on Quora that can easily be answered by Google|Why d
 What will be the implications of banning 500 and 1000 rupees currency notes on Indian economy|What will the safety effects of demonetization of 500 and 1000 rupee notes
 
 ### References
-The references used throughout the project are mentioned in 'misc/references.py'
+The references used throughout the project are mentioned in 'misc/references.py'.
 ```
 @inproceedings{patro2018learning,
   title={Learning Semantic Sentence Embeddings using Sequential Pair-wise Discriminator},
