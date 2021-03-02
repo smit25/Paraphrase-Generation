@@ -93,7 +93,7 @@ This command will tell you where you can see your logs on browser, commonly it i
 
 ### Modification Introduced
 1. Proper Noun Segregation: All proper nouns (pos_tag = ‘PPN’) in the sentence are stored locally and replaced with ‘UNK’. After the paraphrase for the sentence is generated, the ‘UNK’ are replaced with the original words.
-2.Expansion of the Bag of Words: Originally, NLTK corpus was used to make the BOW, but limitations of Google Colab (tensor memory issue) made it redundant, hence words from Project Gutenberg were used to expand the BOW.
+2. Expansion of the Bag of Words: Originally, NLTK corpus was used to make the BOW, but limitations of Google Colab (tensor memory issue) made it redundant, hence words from Project Gutenberg were used to expand the BOW.
 
 
 ### Results
