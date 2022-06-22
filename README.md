@@ -15,8 +15,8 @@ This model facilitates paraphrase modification by synonym replacement, antonym r
 
 1. Clone this repository (and create a virtual environment)
 ```
-git clone https://www.github.com/dev-chauhan/PQG-pytorch
-cd PQG-pytorch
+git clone https://github.com/smit25/Paraphrase-Generation
+cd Paraphrase-Generation
 ```
 
 2. Download venv for creating a virtual environment
