@@ -49,8 +49,9 @@ Download all the data files from here.
 - [PAWS_train_final.json](https://github.com/smit25/Paraphrase/blob/master/data/PAWS_train_final.json)
 - [PAWS_train_swap.json](https://github.com/smit25/Paraphrase/blob/master/data/PAWS_train_swap.json)
 
-##### Download Dataset
-If you want to train from scratch continue reading, or if you just want to evaluate using a pretrained model then head over to `data` section and download the data files and run `train.py` to evaluate on the pretrained model.
+##### Download Dataset/ Download Pre-trained Model
+If you want to build from scratch continue reading, or if you just want to train using a pre-downloaded data then head over to `data` section and download the data files and run `train.py`. 
+If you want to evaluate on pre-trained model, please visit [this](https://drive.google.com/drive/folders/1qwtF1I2sZ975aLDxDqlEz_noBj37GNOx?usp=sharing) link for downloading the saved weights of vanilla paraphrase and modified paraphrase generation model.
 
 For preprocessing on the original tsv file, head to 'preprocessing' folder and run:
 ``` 
