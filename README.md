@@ -136,7 +136,6 @@ The references used throughout the project are mentioned in 'misc/references.py'
 ```
 ### Contribution
 * Smit Patel
-* Dev Chauhan
-* The original authors of the paper
+* The original authors of the paper (reference)
 
 For any queries, feel free to contact me at smitu3435@gmail.com
