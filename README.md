@@ -9,6 +9,8 @@ The motivation for the model is derived from the paper [Learning Semantic Senten
 #### Lexical Modification Model
 This model facilitates paraphrase modification by synonym replacement, antonym replacement with elimination of apropos negation and tense rectifier (tense identification and transformation), while retaining the semantics of the original sentence.
 
+There is also a version of this model built on a network of Knowledge Graphs [code is not public yet] that utilizes the concepts of Taxonomy Trees and Resnik Similarity.
+
 ## Requirements and Installation
 
 ##### Use Google Colab or a Code Editor IDE
